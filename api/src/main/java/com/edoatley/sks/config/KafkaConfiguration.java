@@ -1,47 +1,40 @@
 package com.edoatley.sks.config;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.serialization.StringSerializer;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
+import reactor.kafka.sender.SenderOptions;
 
 import java.util.Map;
 
+@Configuration
 public class KafkaConfiguration {
 
-    @Value("kafkastream.app.bootstrap-server")
-    String bootstrapServer;
-
     @Bean
-    ReactiveKafkaProducerTemplate<String, String> reactiveKafkaProducerTemplate() {
-        SenderOptions<String, Object> senderOptions = null;
-        return new ReactiveKafkaProducerTemplate<>(senderOptions);
+    ReactiveKafkaProducerTemplate<String, String> reactiveKafkaProducerTemplate(Map<String, Object> producerConfigs) {
+        return new ReactiveKafkaProducerTemplate<>(SenderOptions.create(producerConfigs));
     }
 
     @Bean
-    KafkaTemplate<String, String> kafkaTemplate() {
-        Map<String, Object> configProps = Map.of(
-            ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer,
-            ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
-            ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class
-        );
-        return new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(configProps));
+    KafkaTemplate<String, String> kafkaTemplate(Map<String, Object> producerConfigs) throws ClassNotFoundException {
+        return new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(producerConfigs));
     }
 
     @Bean
-    ProducerFactory<String, String> producerFactory() {
-        return new DefaultKafkaProducerFactory<>(producerConfigs());
+    ProducerFactory<String, String> producerFactory(Map<String, Object> producerConfigs) {
+        return new DefaultKafkaProducerFactory<>(producerConfigs);
     }
 
-    private Map<String, Object> producerConfigs() {
+    @Bean
+    Map<String, Object> producerConfigs(KafkaProperties props) throws ClassNotFoundException {
         return Map.of(
-            ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer,
-            ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
-            ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class
+                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, props.getBootstrapServer(),
+                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, Class.forName(props.getKeySerializer()),
+                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, Class.forName(props.getValueSerializer())
         );
     }
 }
